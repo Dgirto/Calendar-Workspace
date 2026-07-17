@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="doc_title">Conector Google Calendar (Workspace) — Ruvic</title>
+  <link rel="stylesheet" href="assets/ruvic.css">
+</head>
+<body class="guide">
+  <main class="ruvic-container">
+
+    <nav class="ruvic-toc" aria-label="Índice">
+      <h2 data-i18n="toc_title">Contenido</h2>
+      <ol>
+        <li><a href="#que-es" data-i18n="toc.que_es">¿Qué es y para qué sirve?</a></li>
+        <li><a href="#prerrequisitos" data-i18n="toc.prerrequisitos">Prerrequisitos</a></li>
+        <li><a href="#configuracion-fabricante" data-i18n="toc.configuracion_fabricante">Configuración en el fabricante</a></li>
+        <li><a href="#permisos" data-i18n="toc.permisos">Permisos requeridos</a></li>
+        <li><a href="#configuracion-ruvic" data-i18n="toc.configuracion_ruvic">Configuración en Ruvic</a></li>
+        <li><a href="#verificacion" data-i18n="toc.verificacion">Verificación</a></li>
+        <li><a href="#solucion-problemas" data-i18n="toc.solucion_problemas">Solución de problemas</a></li>
+        <li><a href="#faq-seguridad" data-i18n="toc.faq_seguridad">Preguntas frecuentes y notas de seguridad</a></li>
+      </ol>
+    </nav>
+
+    <h1 data-i18n="guide_title">Google Calendar (Google Workspace — cuenta de servicio)</h1>
+    <p class="guide-updated">{{ULTIMA_ACTUALIZACION}}</p>
+
+    <!-- ============ 1. QUÉ ES ============ -->
+    <section>
+      <h2 id="que-es" data-i18n="section.que_es">¿Qué es y para qué sirve?</h2>
+      <p data-i18n="que_es.body">Este conector permite que el agente de Ruvic gestione los calendarios de los usuarios de tu dominio Google Workspace mediante una cuenta de servicio con delegación de dominio: una sola credencial, autorizada por el superadministrador, puede actuar en nombre de cualquier usuario del dominio sin que cada uno autorice individualmente y sin tokens que expiren. Puedes pedirle al agente cosas como:</p>
+      <ul>
+        <li data-i18n="que_es.ej1">“Agenda una reunión en el calendario de soporte@empresa.com mañana a las 3 pm.”</li>
+        <li data-i18n="que_es.ej2">“¿Qué tiene agendado facturación esta semana?”</li>
+        <li data-i18n="que_es.ej3">“Cancela la reunión de seguimiento del viernes del calendario de ventas.”</li>
+      </ul>
+      <p data-i18n="que_es.ops">Operaciones soportadas:</p>
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="table.operacion">Operación</th>
+            <th data-i18n="table.que_hace">Qué hace</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>calendar.create_event</code></td>
+            <td data-i18n="ops.create">Crea un evento (con horario o de día completo), con descripción, ubicación e invitados opcionales</td>
+          </tr>
+          <tr>
+            <td><code>calendar.list_events</code></td>
+            <td data-i18n="ops.list">Lista los eventos de un rango de fechas, con búsqueda por texto</td>
+          </tr>
+          <tr>
+            <td><code>calendar.cancel_event</code></td>
+            <td data-i18n="ops.cancel">Cancela un evento y notifica a los invitados</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout callout-info">
+        <span class="callout-title" data-i18n="que_es.callout.title">Solo Google Workspace</span>
+        <span data-i18n="que_es.callout.body">La delegación de dominio no existe en las cuentas de Google personales. Para una cuenta personal usa el conector Google Calendar (OAuth2).</span>
+      </div>
+    </section>
+
+    <!-- ============ 2. PRERREQUISITOS ============ -->
+    <section>
+      <h2 id="prerrequisitos" data-i18n="section.prerrequisitos">Prerrequisitos</h2>
+      <ul>
+        <li data-i18n="prer.dominio">Un dominio de <strong>Google Workspace</strong> activo (cualquier plan).</li>
+        <li data-i18n="prer.admin">Acceso de <strong>superadministrador</strong> al Admin Console del dominio (solo durante la configuración, para autorizar la delegación).</li>
+        <li data-i18n="prer.cloud">Acceso a <a href="https://console.cloud.google.com/">Google Cloud Console</a> para crear la cuenta de servicio (o reutilizar la de los otros conectores Workspace: Gmail, Sheets, Drive, Docs).</li>
+      </ul>
+    </section>
+
+    <!-- ============ 3. CONFIGURACIÓN EN EL FABRICANTE ============ -->
+    <section>
+      <h2 id="configuracion-fabricante" data-i18n="section.configuracion_fabricante">Configuración en el fabricante</h2>
+      <p data-i18n="fab.intro">Si ya configuraste otro conector Workspace (Gmail, Sheets, Drive, Docs) con cuenta de servicio, reutilízala: solo necesitas los pasos 2 y 4 (habilitar la API y agregar el scope de Calendar a la entrada de delegación existente).</p>
+      <ol class="ruvic-steps">
+        <li>
+          <strong data-i18n="fab.p1.t">Crea la cuenta de servicio.</strong>
+          <p data-i18n="fab.p1.b">En Google Cloud Console → “IAM y administración → Cuentas de servicio” → Crear. No necesita roles del proyecto. Luego “Claves → Agregar clave → JSON” y descarga el archivo de credenciales.</p>
+        </li>
+        <li>
+          <strong data-i18n="fab.p2.t">Habilita la Google Calendar API.</strong>
+          <p data-i18n="fab.p2.b">En “APIs y servicios → Biblioteca” del mismo proyecto, busca <strong>Google Calendar API</strong> y pulsa <strong>Habilitar</strong>.</p>
+        </li>
+        <li>
+          <strong data-i18n="fab.p3.t">Copia el Client ID numérico.</strong>
+          <p data-i18n="fab.p3.b">En los detalles de la cuenta de servicio (o en el campo <code>client_id</code> del JSON descargado). Es un número largo, distinto del correo de la cuenta.</p>
+        </li>
+        <li>
+          <strong data-i18n="fab.p4.t">Autoriza la delegación de dominio (superadministrador).</strong>
+          <p data-i18n="fab.p4.b">En <a href="https://admin.google.com/">admin.google.com</a> → “Seguridad → Control de acceso y datos → Controles de API → Delegación en todo el dominio” → Agregar nueva: pega el Client ID y el scope <code>https://www.googleapis.com/auth/calendar.events</code>. Si la entrada ya existe (otros conectores Workspace), edítala y agrega este scope separado por coma.</p>
+          <div class="screenshot-placeholder" data-i18n="fab.p4.img">[ Captura: entrada de delegación en el Admin Console con el scope de Calendar — reemplazar por assets/img/calendar-ws-delegation.png ]</div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ============ 4. PERMISOS ============ -->
+    <section>
+      <h2 id="permisos" data-i18n="section.permisos">Permisos requeridos</h2>
+      <p data-i18n="perm.intro">Principio de mínimo privilegio: la delegación se autoriza con un único scope.</p>
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="table.permiso">Permiso</th>
+            <th data-i18n="table.para_que">Para qué sirve</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>calendar.events</code></td>
+            <td data-i18n="perm.events">Crear, listar y cancelar eventos de los calendarios accesibles por el usuario impersonado. No permite cambiar la configuración de los calendarios, ni compartirlos, ni acceder a correo o archivos del dominio.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============ 5. CONFIGURACIÓN EN RUVIC ============ -->
+    <section>
+      <h2 id="configuracion-ruvic" data-i18n="section.configuracion_ruvic">Configuración en Ruvic</h2>
+      <p data-i18n="ruvic.intro">Entra a <strong>Settings → Conectores</strong>, busca la tarjeta <strong>Google Calendar (Google Workspace — cuenta de servicio)</strong> y pulsa <strong>Configurar</strong>:</p>
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="table.campo">Campo del formulario</th>
+            <th data-i18n="table.valor">Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-i18n="ruvic.f1">JSON de la cuenta de servicio</td>
+            <td data-i18n="ruvic.v1">Contenido completo del archivo JSON descargado en el paso 1 (se guarda cifrado como secreto)</td>
+          </tr>
+          <tr>
+            <td data-i18n="ruvic.f2">Usuario de prueba</td>
+            <td data-i18n="ruvic.v2">Un correo del dominio (ej. facturacion@tuempresa.com); solo se usa para el botón “Probar conexión”</td>
+          </tr>
+          <tr>
+            <td data-i18n="ruvic.f3">Timeout de solicitud</td>
+            <td data-i18n="ruvic.v3">Opcional; 30 segundos por defecto</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="screenshot-placeholder" data-i18n="ruvic.img">[ Captura: formulario del conector en Settings → Conectores — reemplazar por assets/img/calendar-ws-form.png ]</div>
+    </section>
+
+    <!-- ============ 6. VERIFICACIÓN ============ -->
+    <section>
+      <h2 id="verificacion" data-i18n="section.verificacion">Verificación</h2>
+      <ol class="ruvic-steps">
+        <li>
+          <strong data-i18n="ver.p1.t">Test de conexión exitoso.</strong>
+          <p data-i18n="ver.p1.b">El botón <em>Probar conexión</em> debe responder: <em>“Conexión exitosa: delegación de dominio válida para tu-usuario@tudominio.com”</em>. La tarjeta cambia a estado <strong>Configurado</strong>.</p>
+        </li>
+        <li>
+          <strong data-i18n="ver.p2.t">Automatización mínima de prueba.</strong>
+          <p data-i18n="ver.p2.b">Abre una conversación nueva con el agente y pídele: <em>“Crea un evento de prueba mañana a las 10 am en el calendario de [usuario del dominio] y dime qué tiene agendado esa mañana.”</em> El evento debe aparecer en el Google Calendar de ese usuario. Después pídele que lo cancele.</p>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ============ 7. SOLUCIÓN DE PROBLEMAS ============ -->
+    <section>
+      <h2 id="solucion-problemas" data-i18n="section.solucion_problemas">Solución de problemas</h2>
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="table.sintoma">Mensaje / síntoma</th>
+            <th data-i18n="table.causa">Causa probable y solución</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-i18n="prob.s1">“No se pudo autenticar como '…' (unauthorized_client)”</td>
+            <td data-i18n="prob.c1">La delegación no está autorizada: falta el Client ID en el Admin Console, el scope no coincide exactamente con calendar.events, o el usuario no pertenece al dominio. Revisa el paso 4 de la sección 3 (los cambios tardan hasta 10 minutos en aplicar).</td>
+          </tr>
+          <tr>
+            <td data-i18n="prob.s2">“La Google Calendar API no está habilitada en el proyecto…”</td>
+            <td data-i18n="prob.c2">Falta el paso 2 de la sección 3. El propio mensaje incluye el enlace de activación; habilítala y espera 1-2 minutos.</td>
+          </tr>
+          <tr>
+            <td data-i18n="prob.s3">“El JSON de la cuenta de servicio no tiene el formato esperado…”</td>
+            <td data-i18n="prob.c3">Se pegó el JSON incompleto o el de otro tipo de credencial (cliente OAuth). Descarga de nuevo la clave de la cuenta de servicio y pega el contenido completo.</td>
+          </tr>
+          <tr>
+            <td data-i18n="prob.s4">“El evento o calendario solicitado no existe…”</td>
+            <td data-i18n="prob.c4">El event_id es incorrecto, el evento ya fue eliminado, o el usuario impersonado no tiene acceso a ese calendario. Lista los eventos de nuevo para obtener el id vigente.</td>
+          </tr>
+          <tr>
+            <td data-i18n="prob.s5">Funciona con un usuario pero falla con otro</td>
+            <td data-i18n="prob.c5">El segundo usuario no pertenece al dominio autorizado (la delegación cubre un dominio, no cuentas externas ni alias de otros dominios secundarios no autorizados).</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============ 8. FAQ Y SEGURIDAD ============ -->
+    <section>
+      <h2 id="faq-seguridad" data-i18n="section.faq_seguridad">Preguntas frecuentes y notas de seguridad</h2>
+
+      <h3 data-i18n="faq.q1">¿La cuenta de servicio puede leer el correo o los archivos del dominio?</h3>
+      <p data-i18n="faq.a1">No con este conector: la delegación se autoriza solo con el scope calendar.events. El superadministrador ve (y controla) la lista exacta de scopes en el Admin Console.</p>
+
+      <h3 data-i18n="faq.q2">¿Dónde queda guardado el JSON de la cuenta de servicio?</h3>
+      <p data-i18n="faq.a2">Como secreto en el almacén de credenciales de la plataforma, asociado a tu usuario. La interfaz nunca vuelve a mostrarlo; solo indica “definida”.</p>
+
+      <h3 data-i18n="faq.q3">¿Cómo se revoca el acceso?</h3>
+      <p data-i18n="faq.a3">El superadministrador elimina la entrada de delegación en el Admin Console (efecto inmediato en todo el dominio), o elimina/rota la clave de la cuenta de servicio en Google Cloud Console.</p>
+
+      <h3 data-i18n="faq.q4">¿Expiran las credenciales?</h3>
+      <p data-i18n="faq.a4">No. Las claves de cuenta de servicio no expiran solas — por eso conviene rotarlas periódicamente (crear clave nueva, actualizar el formulario, eliminar la anterior) según tu política de seguridad.</p>
+
+      <div class="callout callout-warning">
+        <span class="callout-title" data-i18n="faq.bp.title">Buenas prácticas</span>
+        <span data-i18n="faq.bp.body">Usa una cuenta de servicio dedicada a Ruvic; autoriza solo los scopes que el catálogo necesita; rota la clave JSON periódicamente; y elimina la entrada de delegación si dejas de usar los conectores Workspace.</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const I18N = {
+      es: {
+        doc_title: "Conector Google Calendar (Workspace) — Ruvic",
+        toc_title: "Contenido",
+        "toc.que_es": "¿Qué es y para qué sirve?",
+        "toc.prerrequisitos": "Prerrequisitos",
+        "toc.configuracion_fabricante": "Configuración en el fabricante",
+        "toc.permisos": "Permisos requeridos",
+        "toc.configuracion_ruvic": "Configuración en Ruvic",
+        "toc.verificacion": "Verificación",
+        "toc.solucion_problemas": "Solución de problemas",
+        "toc.faq_seguridad": "Preguntas frecuentes y notas de seguridad",
+        guide_title: "Google Calendar (Google Workspace — cuenta de servicio)",
+        "section.que_es": "¿Qué es y para qué sirve?",
+        "que_es.body": "Este conector permite que el agente de Ruvic gestione los calendarios de los usuarios de tu dominio Google Workspace mediante una cuenta de servicio con delegación de dominio: una sola credencial, autorizada por el superadministrador, puede actuar en nombre de cualquier usuario del dominio sin que cada uno autorice individualmente y sin tokens que expiren. Puedes pedirle al agente cosas como:",
+        "que_es.ej1": "“Agenda una reunión en el calendario de soporte@empresa.com mañana a las 3 pm.”",
+        "que_es.ej2": "“¿Qué tiene agendado facturación esta semana?”",
+        "que_es.ej3": "“Cancela la reunión de seguimiento del viernes del calendario de ventas.”",
+        "que_es.ops": "Operaciones soportadas:",
+        "table.operacion": "Operación",
+        "table.que_hace": "Qué hace",
+        "ops.create": "Crea un evento (con horario o de día completo), con descripción, ubicación e invitados opcionales",
+        "ops.list": "Lista los eventos de un rango de fechas, con búsqueda por texto",
+        "ops.cancel": "Cancela un evento y notifica a los invitados",
+        "que_es.callout.title": "Solo Google Workspace",
+        "que_es.callout.body": "La delegación de dominio no existe en las cuentas de Google personales. Para una cuenta personal usa el conector Google Calendar (OAuth2).",
+        "section.prerrequisitos": "Prerrequisitos",
+        "prer.dominio": "Un dominio de Google Workspace activo (cualquier plan).",
+        "prer.admin": "Acceso de superadministrador al Admin Console del dominio (solo durante la configuración, para autorizar la delegación).",
+        "prer.cloud": "Acceso a Google Cloud Console para crear la cuenta de servicio (o reutilizar la de los otros conectores Workspace: Gmail, Sheets, Drive, Docs).",
+        "section.configuracion_fabricante": "Configuración en el fabricante",
+        "fab.intro": "Si ya configuraste otro conector Workspace (Gmail, Sheets, Drive, Docs) con cuenta de servicio, reutilízala: solo necesitas los pasos 2 y 4 (habilitar la API y agregar el scope de Calendar a la entrada de delegación existente).",
+        "fab.p1.t": "Crea la cuenta de servicio.",
+        "fab.p1.b": "En Google Cloud Console → “IAM y administración → Cuentas de servicio” → Crear. No necesita roles del proyecto. Luego “Claves → Agregar clave → JSON” y descarga el archivo de credenciales.",
+        "fab.p2.t": "Habilita la Google Calendar API.",
+        "fab.p2.b": "En “APIs y servicios → Biblioteca” del mismo proyecto, busca Google Calendar API y pulsa Habilitar.",
+        "fab.p3.t": "Copia el Client ID numérico.",
+        "fab.p3.b": "En los detalles de la cuenta de servicio (o en el campo client_id del JSON descargado). Es un número largo, distinto del correo de la cuenta.",
+        "fab.p4.t": "Autoriza la delegación de dominio (superadministrador).",
+        "fab.p4.b": "En admin.google.com → “Seguridad → Control de acceso y datos → Controles de API → Delegación en todo el dominio” → Agregar nueva: pega el Client ID y el scope https://www.googleapis.com/auth/calendar.events. Si la entrada ya existe (otros conectores Workspace), edítala y agrega este scope separado por coma.",
+        "fab.p4.img": "[ Captura: entrada de delegación en el Admin Console con el scope de Calendar — reemplazar por assets/img/calendar-ws-delegation.png ]",
+        "section.permisos": "Permisos requeridos",
+        "perm.intro": "Principio de mínimo privilegio: la delegación se autoriza con un único scope.",
+        "table.permiso": "Permiso",
+        "table.para_que": "Para qué sirve",
+        "perm.events": "Crear, listar y cancelar eventos de los calendarios accesibles por el usuario impersonado. No permite cambiar la configuración de los calendarios, ni compartirlos, ni acceder a correo o archivos del dominio.",
+        "section.configuracion_ruvic": "Configuración en Ruvic",
+        "ruvic.intro": "Entra a Settings → Conectores, busca la tarjeta Google Calendar (Google Workspace — cuenta de servicio) y pulsa Configurar:",
+        "table.campo": "Campo del formulario",
+        "table.valor": "Valor",
+        "ruvic.f1": "JSON de la cuenta de servicio",
+        "ruvic.v1": "Contenido completo del archivo JSON descargado en el paso 1 (se guarda cifrado como secreto)",
+        "ruvic.f2": "Usuario de prueba",
+        "ruvic.v2": "Un correo del dominio (ej. facturacion@tuempresa.com); solo se usa para el botón “Probar conexión”",
+        "ruvic.f3": "Timeout de solicitud",
+        "ruvic.v3": "Opcional; 30 segundos por defecto",
+        "ruvic.img": "[ Captura: formulario del conector en Settings → Conectores — reemplazar por assets/img/calendar-ws-form.png ]",
+        "section.verificacion": "Verificación",
+        "ver.p1.t": "Test de conexión exitoso.",
+        "ver.p1.b": "El botón Probar conexión debe responder: “Conexión exitosa: delegación de dominio válida para tu-usuario@tudominio.com”. La tarjeta cambia a estado Configurado.",
+        "ver.p2.t": "Automatización mínima de prueba.",
+        "ver.p2.b": "Abre una conversación nueva con el agente y pídele: “Crea un evento de prueba mañana a las 10 am en el calendario de [usuario del dominio] y dime qué tiene agendado esa mañana.” El evento debe aparecer en el Google Calendar de ese usuario. Después pídele que lo cancele.",
+        "section.solucion_problemas": "Solución de problemas",
+        "table.sintoma": "Mensaje / síntoma",
+        "table.causa": "Causa probable y solución",
+        "prob.s1": "“No se pudo autenticar como '…' (unauthorized_client)”",
+        "prob.c1": "La delegación no está autorizada: falta el Client ID en el Admin Console, el scope no coincide exactamente con calendar.events, o el usuario no pertenece al dominio. Revisa el paso 4 de la sección 3 (los cambios tardan hasta 10 minutos en aplicar).",
+        "prob.s2": "“La Google Calendar API no está habilitada en el proyecto…”",
+        "prob.c2": "Falta el paso 2 de la sección 3. El propio mensaje incluye el enlace de activación; habilítala y espera 1-2 minutos.",
+        "prob.s3": "“El JSON de la cuenta de servicio no tiene el formato esperado…”",
+        "prob.c3": "Se pegó el JSON incompleto o el de otro tipo de credencial (cliente OAuth). Descarga de nuevo la clave de la cuenta de servicio y pega el contenido completo.",
+        "prob.s4": "“El evento o calendario solicitado no existe…”",
+        "prob.c4": "El event_id es incorrecto, el evento ya fue eliminado, o el usuario impersonado no tiene acceso a ese calendario. Lista los eventos de nuevo para obtener el id vigente.",
+        "prob.s5": "Funciona con un usuario pero falla con otro",
+        "prob.c5": "El segundo usuario no pertenece al dominio autorizado (la delegación cubre un dominio, no cuentas externas ni alias de otros dominios secundarios no autorizados).",
+        "section.faq_seguridad": "Preguntas frecuentes y notas de seguridad",
+        "faq.q1": "¿La cuenta de servicio puede leer el correo o los archivos del dominio?",
+        "faq.a1": "No con este conector: la delegación se autoriza solo con el scope calendar.events. El superadministrador ve (y controla) la lista exacta de scopes en el Admin Console.",
+        "faq.q2": "¿Dónde queda guardado el JSON de la cuenta de servicio?",
+        "faq.a2": "Como secreto en el almacén de credenciales de la plataforma, asociado a tu usuario. La interfaz nunca vuelve a mostrarlo; solo indica “definida”.",
+        "faq.q3": "¿Cómo se revoca el acceso?",
+        "faq.a3": "El superadministrador elimina la entrada de delegación en el Admin Console (efecto inmediato en todo el dominio), o elimina/rota la clave de la cuenta de servicio en Google Cloud Console.",
+        "faq.q4": "¿Expiran las credenciales?",
+        "faq.a4": "No. Las claves de cuenta de servicio no expiran solas — por eso conviene rotarlas periódicamente (crear clave nueva, actualizar el formulario, eliminar la anterior) según tu política de seguridad.",
+        "faq.bp.title": "Buenas prácticas",
+        "faq.bp.body": "Usa una cuenta de servicio dedicada a Ruvic; autoriza solo los scopes que el catálogo necesita; rota la clave JSON periódicamente; y elimina la entrada de delegación si dejas de usar los conectores Workspace.",
+      },
+      en: {
+        doc_title: "Google Calendar (Workspace) Connector — Ruvic",
+        toc_title: "Contents",
+        "toc.que_es": "What it is and what it’s for",
+        "toc.prerrequisitos": "Prerequisites",
+        "toc.configuracion_fabricante": "Vendor / provider setup",
+        "toc.permisos": "Required permissions",
+        "toc.configuracion_ruvic": "Configuration in Ruvic",
+        "toc.verificacion": "Verification",
+        "toc.solucion_problemas": "Troubleshooting",
+        "toc.faq_seguridad": "FAQ and security notes",
+        guide_title: "Google Calendar (Google Workspace — service account)",
+        "section.que_es": "What it is and what it’s for",
+        "que_es.body": "This connector lets the Ruvic agent manage the calendars of users in your Google Workspace domain through a service account with domain-wide delegation: a single credential, authorized by the super administrator, can act on behalf of any user in the domain without individual authorization and without expiring tokens. You can ask the agent things like:",
+        "que_es.ej1": "“Schedule a meeting on soporte@empresa.com's calendar tomorrow at 3 pm.”",
+        "que_es.ej2": "“What does billing have scheduled this week?”",
+        "que_es.ej3": "“Cancel Friday's follow-up meeting on the sales calendar.”",
+        "que_es.ops": "Supported operations:",
+        "table.operacion": "Operation",
+        "table.que_hace": "What it does",
+        "ops.create": "Creates an event (timed or all-day), with optional description, location and attendees",
+        "ops.list": "Lists the events in a date range, with free-text search",
+        "ops.cancel": "Cancels an event and notifies the attendees",
+        "que_es.callout.title": "Google Workspace only",
+        "que_es.callout.body": "Domain-wide delegation does not exist for personal Google accounts. For a personal account use the Google Calendar (OAuth2) connector.",
+        "section.prerrequisitos": "Prerequisites",
+        "prer.dominio": "An active Google Workspace domain (any plan).",
+        "prer.admin": "Super administrator access to the domain's Admin Console (only during setup, to authorize the delegation).",
+        "prer.cloud": "Access to Google Cloud Console to create the service account (or reuse the one from the other Workspace connectors: Gmail, Sheets, Drive, Docs).",
+        "section.configuracion_fabricante": "Vendor / provider setup",
+        "fab.intro": "If you already configured another Workspace connector (Gmail, Sheets, Drive, Docs) with a service account, reuse it: you only need steps 2 and 4 (enable the API and add the Calendar scope to the existing delegation entry).",
+        "fab.p1.t": "Create the service account.",
+        "fab.p1.b": "In Google Cloud Console → “IAM & Admin → Service accounts” → Create. It needs no project roles. Then “Keys → Add key → JSON” and download the credentials file.",
+        "fab.p2.t": "Enable the Google Calendar API.",
+        "fab.p2.b": "In “APIs & Services → Library” of the same project, search for Google Calendar API and click Enable.",
+        "fab.p3.t": "Copy the numeric Client ID.",
+        "fab.p3.b": "In the service account details (or the client_id field of the downloaded JSON). It's a long number, different from the account's email.",
+        "fab.p4.t": "Authorize domain-wide delegation (super administrator).",
+        "fab.p4.b": "In admin.google.com → “Security → Access and data control → API controls → Domain-wide delegation” → Add new: paste the Client ID and the scope https://www.googleapis.com/auth/calendar.events. If the entry already exists (other Workspace connectors), edit it and add this scope separated by a comma.",
+        "fab.p4.img": "[ Screenshot: delegation entry in the Admin Console with the Calendar scope — replace with assets/img/calendar-ws-delegation.png ]",
+        "section.permisos": "Required permissions",
+        "perm.intro": "Least-privilege principle: the delegation is authorized with a single scope.",
+        "table.permiso": "Permission",
+        "table.para_que": "Why it's needed",
+        "perm.events": "Create, list and cancel events on the calendars accessible to the impersonated user. It cannot change calendar settings, share them, or access the domain's email or files.",
+        "section.configuracion_ruvic": "Configuration in Ruvic",
+        "ruvic.intro": "Go to Settings → Connectors, find the Google Calendar (Google Workspace — service account) card and click Configure:",
+        "table.campo": "Form field",
+        "table.valor": "Value",
+        "ruvic.f1": "Service account JSON",
+        "ruvic.v1": "Full contents of the JSON file downloaded in step 1 (stored encrypted as a secret)",
+        "ruvic.f2": "Test user",
+        "ruvic.v2": "An email in the domain (e.g. facturacion@tuempresa.com); only used by the “Test connection” button",
+        "ruvic.f3": "Request timeout",
+        "ruvic.v3": "Optional; defaults to 30 seconds",
+        "ruvic.img": "[ Screenshot: connector form in Settings → Connectors — replace with assets/img/calendar-ws-form.png ]",
+        "section.verificacion": "Verification",
+        "ver.p1.t": "Successful connection test.",
+        "ver.p1.b": "The Test connection button should return: “Successful connection: valid domain delegation for your-user@yourdomain.com”. The card switches to Configured.",
+        "ver.p2.t": "Minimal test automation.",
+        "ver.p2.b": "Open a new conversation with the agent and ask: “Create a test event tomorrow at 10 am on [domain user]'s calendar and tell me what they have scheduled that morning.” The event should appear in that user's Google Calendar. Then ask it to cancel it.",
+        "section.solucion_problemas": "Troubleshooting",
+        "table.sintoma": "Message / symptom",
+        "table.causa": "Likely cause and fix",
+        "prob.s1": "“Could not authenticate as '…' (unauthorized_client)”",
+        "prob.c1": "The delegation is not authorized: the Client ID is missing in the Admin Console, the scope doesn't exactly match calendar.events, or the user doesn't belong to the domain. Review step 4 of section 3 (changes take up to 10 minutes to apply).",
+        "prob.s2": "“The Google Calendar API is not enabled in the project…”",
+        "prob.c2": "Step 2 of section 3 is missing. The message itself includes the activation link; enable it and wait 1-2 minutes.",
+        "prob.s3": "“The service account JSON does not have the expected format…”",
+        "prob.c3": "An incomplete JSON, or a different credential type (OAuth client), was pasted. Download the service account key again and paste the full contents.",
+        "prob.s4": "“The requested event or calendar does not exist…”",
+        "prob.c4": "The event_id is wrong, the event was already deleted, or the impersonated user has no access to that calendar. List the events again to get the current id.",
+        "prob.s5": "Works with one user but fails with another",
+        "prob.c5": "The second user does not belong to the authorized domain (delegation covers one domain, not external accounts or unauthorized secondary domains).",
+        "section.faq_seguridad": "FAQ and security notes",
+        "faq.q1": "Can the service account read the domain's email or files?",
+        "faq.a1": "Not with this connector: the delegation is authorized only with the calendar.events scope. The super administrator sees (and controls) the exact scope list in the Admin Console.",
+        "faq.q2": "Where is the service account JSON stored?",
+        "faq.a2": "As a secret in the platform's credential store, tied to your user. The UI never displays it again; it only shows “set”.",
+        "faq.q3": "How is access revoked?",
+        "faq.a3": "The super administrator removes the delegation entry in the Admin Console (immediate effect for the whole domain), or deletes/rotates the service account key in Google Cloud Console.",
+        "faq.q4": "Do the credentials expire?",
+        "faq.a4": "No. Service account keys never expire on their own — which is why you should rotate them periodically (create a new key, update the form, delete the old one) per your security policy.",
+        "faq.bp.title": "Best practices",
+        "faq.bp.body": "Use a service account dedicated to Ruvic; authorize only the scopes the catalog needs; rotate the JSON key periodically; and remove the delegation entry if you stop using the Workspace connectors.",
+      },
+    };
+    /* El portal aplica el idioma del usuario (localStorage ruvic-docs-lang)
+       y actualiza [data-i18n], [data-i18n-placeholder] y [data-i18n-alt]. */
+  </script>
+</body>
+</html>
