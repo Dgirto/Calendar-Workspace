@@ -1,5 +1,5 @@
 ---
-name: calendar_workspace
+name: calendar-workspace
 description: >
   Usa la librería ruvic_calendar_workspace_connector para gestionar
   eventos de Google Calendar en un dominio Google Workspace vía cuenta
