@@ -101,10 +101,26 @@ def _wrap_http_error(exc: HttpError) -> CalendarWorkspaceConnectorError:
 
 
 def _validate_non_empty(value: str, field: str) -> str:
-    value = (value or "").strip()
+    if not isinstance(value, str):
+        raise CalendarWorkspaceDataError(
+            f"{field} debe ser un string, no {type(value).__name__}."
+        )
+    value = value.strip()
     if not value:
         raise CalendarWorkspaceDataError(f"{field} no puede estar vacío.")
     return value
+
+
+def _validate_max_results(max_results: Any) -> int:
+    if isinstance(max_results, bool) or not isinstance(max_results, int):
+        raise CalendarWorkspaceDataError(
+            f"max_results debe ser un entero, no {type(max_results).__name__}."
+        )
+    if not 1 <= max_results <= _MAX_RESULTS_LIMIT:
+        raise CalendarWorkspaceDataError(
+            f"max_results debe estar entre 1 y {_MAX_RESULTS_LIMIT}."
+        )
+    return max_results
 
 
 def _to_event_time(value: str, timezone: str | None) -> dict[str, str]:
@@ -309,6 +325,15 @@ class CalendarWorkspaceClient:
         if location:
             body["location"] = location
         if attendees:
+            if not isinstance(attendees, list):
+                raise CalendarWorkspaceDataError(
+                    f"attendees debe ser una lista de strings, no {type(attendees).__name__}."
+                )
+            for email in attendees:
+                if not isinstance(email, str):
+                    raise CalendarWorkspaceDataError(
+                        f"Cada correo en attendees debe ser un string, no {type(email).__name__}."
+                    )
             body["attendees"] = [
                 {"email": email.strip()} for email in attendees if email.strip()
             ]
@@ -365,10 +390,7 @@ class CalendarWorkspaceClient:
             ... )
             [{'id': 'abc123', 'summary': 'Reunión de equipo', ...}]
         """
-        if not 1 <= max_results <= _MAX_RESULTS_LIMIT:
-            raise CalendarWorkspaceDataError(
-                f"max_results debe estar entre 1 y {_MAX_RESULTS_LIMIT}."
-            )
+        max_results = _validate_max_results(max_results)
         params: dict[str, Any] = {
             "calendarId": calendar_id,
             "maxResults": max_results,
