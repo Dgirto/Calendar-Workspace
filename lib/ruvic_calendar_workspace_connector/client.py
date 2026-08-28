@@ -344,6 +344,12 @@ class CalendarWorkspaceClient:
                 .insert(calendarId=calendar_id, body=body, sendUpdates="all")
                 .execute(num_retries=1)
             )
+        except (RefreshError, GoogleAuthError) as exc:
+            raise CalendarWorkspaceAuthError(
+                f"No se pudo autenticar: el token OAuth/credenciales pueden "
+                f"estar revocados, vencidos o ser inválidos. Vuelve a "
+                f"autorizar el conector. Detalle: {exc}"
+            ) from exc
         except HttpError as exc:
             raise _wrap_http_error(exc) from exc
         self._logger.info(
@@ -406,6 +412,12 @@ class CalendarWorkspaceClient:
         service = self._get_service()
         try:
             result = service.events().list(**params).execute(num_retries=1)
+        except (RefreshError, GoogleAuthError) as exc:
+            raise CalendarWorkspaceAuthError(
+                f"No se pudo autenticar: el token OAuth/credenciales pueden "
+                f"estar revocados, vencidos o ser inválidos. Vuelve a "
+                f"autorizar el conector. Detalle: {exc}"
+            ) from exc
         except HttpError as exc:
             raise _wrap_http_error(exc) from exc
         events = [_simplify_event(e) for e in result.get("items", [])]
@@ -444,6 +456,12 @@ class CalendarWorkspaceClient:
             service.events().delete(
                 calendarId=calendar_id, eventId=event_id, sendUpdates="all"
             ).execute(num_retries=1)
+        except (RefreshError, GoogleAuthError) as exc:
+            raise CalendarWorkspaceAuthError(
+                f"No se pudo autenticar: el token OAuth/credenciales pueden "
+                f"estar revocados, vencidos o ser inválidos. Vuelve a "
+                f"autorizar el conector. Detalle: {exc}"
+            ) from exc
         except HttpError as exc:
             raise _wrap_http_error(exc) from exc
         self._logger.info("Evento %s cancelado (usuario %s)", event_id, self.user_email)
